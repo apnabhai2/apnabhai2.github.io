@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // By default, deny all public and unauthenticated reads and writes to Cloud Storage
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

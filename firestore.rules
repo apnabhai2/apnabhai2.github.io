@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------
+    // 1. MASTER ADMIN COLLECTION (Managed by Admin App & Website)
+    // ----------------------------------------------------
+    match /masterAdmin/{adminId} {
+      // Allows the Admin App to create, list, and delete Master Admins
+      // and allows Master Admin website to verify credentials
+      allow read, write: if true;
+    }
+
+    // ----------------------------------------------------
+    // 2. USERS COLLECTION (Managed by Master Admin Website & Checked by Software)
+    // ----------------------------------------------------
+    match /users/{userId} {
+      // 1. User Software: Lookup license status by userId (allow get)
+      // 2. Website: Master Admin reads and queries users
+      allow read: if true;
+
+      // Website: Master Admin creates user with the required software schema
+      allow create: if request.resource.data.id is string
+                    && request.resource.data.pass is string
+                    && request.resource.data.currentDate is timestamp
+                    && request.resource.data.expiryDate is timestamp
+                    && request.resource.data.masterCode is string;
+
+      // Website: Master Admin updates user (production activation, device reset)
+      // Software: Sets deviceId on first login
+      allow update: if true;
+
+      // Website: Master Admin deletes users
+      allow delete: if true;
+    }
+
+    // Deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
