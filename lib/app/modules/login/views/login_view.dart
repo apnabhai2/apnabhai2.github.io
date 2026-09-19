@@ -137,9 +137,9 @@ class LoginView extends GetView<LoginController> {
                     );
                   }),
 
-                  // Username Field
+                  // Username or Email Field
                   const Text(
-                    'Username',
+                    'Username or Email',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14,
@@ -151,17 +151,17 @@ class LoginView extends GetView<LoginController> {
                     controller: controller.usernameController,
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
-                      hintText: 'Enter admin username or email',
-                      prefixIcon: Icon(Icons.person_outline_rounded,
+                      hintText: 'Enter admin email or username',
+                      prefixIcon: Icon(Icons.alternate_email_rounded,
                           color: AppColors.textMuted),
                     ),
                     textInputAction: TextInputAction.next,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter username';
+                        return 'Please enter username or email';
                       }
                       if (value.trim().length < 3) {
-                        return 'Username must be at least 3 characters';
+                        return 'Input must be at least 3 characters';
                       }
                       return null;
                     },

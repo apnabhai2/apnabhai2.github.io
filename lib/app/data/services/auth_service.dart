@@ -16,6 +16,7 @@ class AuthService extends GetxService {
   bool get isAuthenticated => currentAdmin.value != null;
   String? get masterCode => currentAdmin.value?.masterCode;
   String? get adminUsername => currentAdmin.value?.username;
+  String? get adminEmail => currentAdmin.value?.email;
 
   @override
   void onInit() {
@@ -25,6 +26,20 @@ class AuthService extends GetxService {
 
   /// Restore existing session on web page load
   void _initSession() {
+    // 1. Listen for active Firebase Auth session
+    _authProvider.authStateChanges.listen((user) async {
+      if (user != null && currentAdmin.value == null) {
+        try {
+          final profile = await _authProvider.fetchMasterAdminProfile(user.uid);
+          if (profile != null) {
+            currentAdmin.value = profile;
+            saveSession('master_admin_session', jsonEncode(profile.toMap()));
+          }
+        } catch (_) {}
+      }
+    });
+
+    // 2. Restore cached session
     try {
       final savedJson = loadSession('master_admin_session');
       if (savedJson != null && savedJson.isNotEmpty) {
@@ -41,14 +56,14 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Authenticate Master Admin directly against the masterAdmin collection
+  /// Authenticate Master Admin via Firebase Authentication (Email/Pass or Username)
   Future<MasterAdminModel> login({
     required String usernameOrEmail,
     required String password,
   }) async {
-    final cleanUsername = usernameOrEmail.trim();
-    if (cleanUsername.isEmpty) {
-      throw Exception('Username is required.');
+    final cleanInput = usernameOrEmail.trim();
+    if (cleanInput.isEmpty) {
+      throw Exception('Username or email is required.');
     }
     if (password.isEmpty) {
       throw Exception('Password is required.');
@@ -56,34 +71,34 @@ class AuthService extends GetxService {
 
     try {
       final profile = await _authProvider.authenticateMasterAdmin(
-        username: cleanUsername,
+        usernameOrEmail: cleanInput,
         password: password,
       );
 
       if (profile == null) {
-        throw Exception('Master Admin account "$cleanUsername" was not found.');
+        throw Exception('Master Admin account "$cleanInput" was not found.');
       }
 
       currentAdmin.value = profile;
       saveSession(
         'master_admin_session',
-        jsonEncode({
-          'username': profile.username,
-          'masterCode': profile.masterCode,
-          'role': profile.role,
-        }),
+        jsonEncode(profile.toMap()),
       );
 
       return profile;
     } catch (e) {
-      if (e.toString().contains('INVALID_PASSWORD')) {
-        throw Exception('Invalid password for user "$cleanUsername".');
+      final err = e.toString();
+      if (err.contains('INVALID_PASSWORD')) {
+        throw Exception('Invalid password for account "$cleanInput".');
+      }
+      if (err.contains('USER_NOT_FOUND')) {
+        throw Exception('Master Admin account "$cleanInput" was not found.');
       }
       rethrow;
     }
   }
 
-  /// Secure logout
+  /// Secure logout from Firebase Authentication and local session
   Future<void> logout() async {
     try {
       await _authProvider.signOut();

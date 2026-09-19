@@ -23,60 +23,122 @@ class AppAuthProvider {
     );
   }
 
-  /// Sign out
+  /// Sign out from Firebase Authentication
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  /// Authenticate directly against masterAdmin collection (created by the Admin App)
+  /// Authenticate Master Admin:
+  /// 1. Supports Firebase Auth (Email & Password)
+  /// 2. Supports Username lookup with Firebase Auth resolution
+  /// 3. Backwards compatible with legacy accounts
   Future<MasterAdminModel?> authenticateMasterAdmin({
-    required String username,
+    required String usernameOrEmail,
     required String password,
   }) async {
-    final cleanUsername = username.trim();
+    final cleanInput = usernameOrEmail.trim();
+    DocumentSnapshot? adminDoc;
 
-    // 1. Try finding doc by ID (e.g. masterAdmin/piyush)
-    var doc = await _firestore.collection('masterAdmin').doc(cleanUsername).get();
+    if (cleanInput.contains('@')) {
+      // Input is an Email address -> Authenticate directly with Firebase Auth
+      final credential = await _signInWithFirebaseAuth(cleanInput, password);
+      final uid = credential.user?.uid;
 
-    // 2. If not found by docId, search by 'username' field
-    if (!doc.exists || doc.data() == null) {
-      final query = await _firestore
-          .collection('masterAdmin')
-          .where('username', isEqualTo: cleanUsername)
-          .limit(1)
-          .get();
-      if (query.docs.isNotEmpty) {
-        doc = query.docs.first;
+      if (uid != null) {
+        final query = await _firestore
+            .collection('masterAdmin')
+            .where('uid', isEqualTo: uid)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) {
+          adminDoc = query.docs.first;
+        }
+      }
+
+      if (adminDoc == null) {
+        final query = await _firestore
+            .collection('masterAdmin')
+            .where('email', isEqualTo: cleanInput)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) {
+          adminDoc = query.docs.first;
+        }
+      }
+    } else {
+      // Input is a Username -> Lookup document first
+      var doc = await _firestore.collection('masterAdmin').doc(cleanInput).get();
+      if (!doc.exists || doc.data() == null) {
+        final query = await _firestore
+            .collection('masterAdmin')
+            .where('username', isEqualTo: cleanInput)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) {
+          doc = query.docs.first;
+        }
+      }
+
+      if (!doc.exists || doc.data() == null) {
+        throw Exception('USER_NOT_FOUND');
+      }
+
+      adminDoc = doc;
+      final data = doc.data() as Map<String, dynamic>;
+      final registeredEmail = data['email'] as String?;
+
+      if (registeredEmail != null && registeredEmail.isNotEmpty) {
+        // Master admin was created via Firebase Auth in Apna Admin!
+        await _signInWithFirebaseAuth(registeredEmail, password);
+      } else {
+        // Legacy fallback: verify password/hash directly
+        final storedPass = data['pass']?.toString() ?? data['password']?.toString();
+        final passwordHash = _hashPassword(password);
+        final isMatch = (storedPass == password || storedPass == passwordHash);
+        if (!isMatch) {
+          throw Exception('INVALID_PASSWORD');
+        }
+
+        // Auto-upgrade plain text to SHA-256 hash in Firestore
+        if (storedPass == password && storedPass != passwordHash) {
+          try {
+            await doc.reference.update({
+              'pass': passwordHash,
+              'isHashed': true,
+            });
+          } catch (_) {}
+        }
       }
     }
 
-    if (!doc.exists || doc.data() == null) {
+    if (adminDoc == null || !adminDoc.exists || adminDoc.data() == null) {
       return null;
     }
 
-    final data = doc.data()!;
-    final storedPass = data['pass']?.toString() ?? data['password']?.toString();
-    final passwordHash = _hashPassword(password);
-
-    final isMatch = (storedPass == password || storedPass == passwordHash);
-    if (!isMatch) {
-      throw Exception('INVALID_PASSWORD');
-    }
-
-    // Auto-upgrade plain text password in Firestore to SHA-256 hash
-    if (storedPass == password && storedPass != passwordHash) {
-      try {
-        await doc.reference.update({
-          'pass': passwordHash,
-          'isHashed': true,
-        });
-      } catch (_) {}
-    }
-
-    return MasterAdminModel.fromFirestore(doc);
+    return MasterAdminModel.fromFirestore(adminDoc);
   }
 
-  /// Secure SHA-256 password hashing
+  Future<UserCredential> _signInWithFirebaseAuth(String email, String password) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        throw Exception('INVALID_PASSWORD');
+      } else if (e.code == 'user-not-found') {
+        throw Exception('USER_NOT_FOUND');
+      } else if (e.code == 'user-disabled') {
+        throw Exception('This account has been disabled.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('Invalid email format.');
+      }
+      throw Exception(e.message ?? 'Authentication failed.');
+    }
+  }
+
+  /// Secure SHA-256 password hashing for legacy accounts
   static String _hashPassword(String password) {
     final bytes = utf8.encode(password);
     return sha256.convert(bytes).toString();
@@ -84,10 +146,19 @@ class AppAuthProvider {
 
   /// Retrieve the trusted Master Admin profile for the authenticated UID
   Future<MasterAdminModel?> fetchMasterAdminProfile(String uid) async {
-    final doc = await _firestore.collection('masterAdmin').doc(uid).get();
-    if (!doc.exists || doc.data() == null) {
-      return null;
+    final query = await _firestore
+        .collection('masterAdmin')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+    if (query.docs.isNotEmpty) {
+      return MasterAdminModel.fromFirestore(query.docs.first);
     }
-    return MasterAdminModel.fromFirestore(doc);
+
+    final doc = await _firestore.collection('masterAdmin').doc(uid).get();
+    if (doc.exists && doc.data() != null) {
+      return MasterAdminModel.fromFirestore(doc);
+    }
+    return null;
   }
 }
