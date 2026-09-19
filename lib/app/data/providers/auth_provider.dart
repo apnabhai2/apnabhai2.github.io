@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/master_admin_model.dart';
@@ -54,11 +56,30 @@ class AppAuthProvider {
 
     final data = doc.data()!;
     final storedPass = data['pass']?.toString() ?? data['password']?.toString();
-    if (storedPass == null || storedPass != password) {
+    final passwordHash = _hashPassword(password);
+
+    final isMatch = (storedPass == password || storedPass == passwordHash);
+    if (!isMatch) {
       throw Exception('INVALID_PASSWORD');
     }
 
+    // Auto-upgrade plain text password in Firestore to SHA-256 hash
+    if (storedPass == password && storedPass != passwordHash) {
+      try {
+        await doc.reference.update({
+          'pass': passwordHash,
+          'isHashed': true,
+        });
+      } catch (_) {}
+    }
+
     return MasterAdminModel.fromFirestore(doc);
+  }
+
+  /// Secure SHA-256 password hashing
+  static String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    return sha256.convert(bytes).toString();
   }
 
   /// Retrieve the trusted Master Admin profile for the authenticated UID
