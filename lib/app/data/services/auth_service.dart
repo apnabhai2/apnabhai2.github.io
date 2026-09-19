@@ -33,7 +33,13 @@ class AuthService extends GetxService {
           final profile = await _authProvider.fetchMasterAdminProfile(user.uid);
           if (profile != null) {
             currentAdmin.value = profile;
-            saveSession('master_admin_session', jsonEncode(profile.toMap()));
+            saveSession('master_admin_session', jsonEncode({
+              'uid': profile.uid,
+              'username': profile.username,
+              'masterCode': profile.masterCode,
+              'role': profile.role,
+              if (profile.email != null) 'email': profile.email,
+            }));
           }
         } catch (_) {}
       }
@@ -82,7 +88,13 @@ class AuthService extends GetxService {
       currentAdmin.value = profile;
       saveSession(
         'master_admin_session',
-        jsonEncode(profile.toMap()),
+        jsonEncode({
+          'uid': profile.uid,
+          'username': profile.username,
+          'masterCode': profile.masterCode,
+          'role': profile.role,
+          if (profile.email != null) 'email': profile.email,
+        }),
       );
 
       return profile;
