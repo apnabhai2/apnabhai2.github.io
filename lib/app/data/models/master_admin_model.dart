@@ -46,6 +46,17 @@ class MasterAdminModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
+      'username': username,
+      'masterCode': masterCode,
+      if (email != null) 'email': email,
+      'role': role,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
       'username': username,
       'masterCode': masterCode,
       if (email != null) 'email': email,
