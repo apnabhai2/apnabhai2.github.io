@@ -26,16 +26,25 @@ class AdminSidebar extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryLight],
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryLight],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_rounded,
+                          color: Colors.white, size: 22),
                     ),
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.admin_panel_settings_rounded,
-                      color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 12),
                 const Column(
