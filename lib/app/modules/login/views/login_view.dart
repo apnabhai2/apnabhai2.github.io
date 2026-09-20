@@ -8,14 +8,17 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 440),
-            padding: const EdgeInsets.all(36),
+            padding: EdgeInsets.all(isMobile ? 22 : 36),
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(18),
@@ -37,8 +40,8 @@ class LoginView extends GetView<LoginController> {
                   // Logo / Header
                   Center(
                     child: Container(
-                      width: 64,
-                      height: 64,
+                      width: isMobile ? 54 : 64,
+                      height: isMobile ? 54 : 64,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [

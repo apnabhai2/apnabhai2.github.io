@@ -14,30 +14,50 @@ class AllUsersView extends GetView<AllUsersController> {
     return AdminScaffold(
       title: 'All Users',
       actions: [
-        ElevatedButton.icon(
-          onPressed: () => Get.toNamed(Routes.ADD_USER),
-          icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
-          label: const Text('Add User'),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          ),
+        Builder(
+          builder: (context) {
+            final isMobile = MediaQuery.of(context).size.width < 600;
+            if (isMobile) {
+              return IconButton(
+                tooltip: 'Add User',
+                onPressed: () => Get.toNamed(Routes.ADD_USER),
+                icon: const Icon(Icons.person_add_alt_1_rounded,
+                    color: AppColors.primaryLight),
+              );
+            }
+            return ElevatedButton.icon(
+              onPressed: () => Get.toNamed(Routes.ADD_USER),
+              icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+              label: const Text('Add User'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            );
+          },
         ),
       ],
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth >= 900;
+          final screenWidth = constraints.maxWidth;
+          final isDesktop = screenWidth >= 900;
+          final isMobile = screenWidth < 600;
+
+          final pagePadding = isMobile
+              ? const EdgeInsets.all(16)
+              : const EdgeInsets.all(24);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: pagePadding,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Search and Filter Bar (Maintains focus and internal reactivity)
                 _buildFilterBar(),
 
-                const SizedBox(height: 24),
+                SizedBox(height: isMobile ? 18 : 24),
 
-                // Live Reactive Users Grid
+                // Live Reactive Users Grid / Column
                 Obx(() {
                   if (controller.isLoading.value) {
                     return const Center(
@@ -82,12 +102,40 @@ class AllUsersView extends GetView<AllUsersController> {
                     return _buildEmptyState();
                   }
 
+                  if (!isDesktop) {
+                    // Mobile & Tablet: Natural-height Column prevents any button clipping
+                    return Column(
+                      children: users.map((user) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Obx(() {
+                            final isUpdating =
+                                controller.isUserUpdating(user.id);
+                            return UserCard(
+                              key: ValueKey(user.id),
+                              user: user,
+                              isLoading: isUpdating,
+                              onStartProduction: () =>
+                                  controller.startProduction(user),
+                              onResetDeviceId: () =>
+                                  controller.resetDeviceId(user),
+                              onToggleStop: () =>
+                                  controller.toggleStopUser(user),
+                              onDelete: () => controller.deleteUser(user),
+                            );
+                          }),
+                        );
+                      }).toList(),
+                    );
+                  }
+
                   return GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isDesktop ? 2 : 1,
-                      mainAxisExtent: 370,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisExtent: 420,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
                     ),
@@ -122,16 +170,18 @@ class AllUsersView extends GetView<AllUsersController> {
   }
 
   Widget _buildFilterBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Builder(builder: (context) {
+      final isMobile = MediaQuery.of(context).size.width < 600;
+      return Container(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Search Input with stable controller
           TextField(
             controller: controller.searchController,
@@ -189,7 +239,8 @@ class AllUsersView extends GetView<AllUsersController> {
         ],
       ),
     );
-  }
+  });
+}
 
   Widget _buildFilterChip(String filterKey, String label, {Color? color}) {
     final isSelected = controller.selectedFilter.value == filterKey;

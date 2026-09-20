@@ -56,25 +56,33 @@ class HomeView extends GetView<HomeController> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth >= 900;
+            final screenWidth = constraints.maxWidth;
+            final isMobile = screenWidth < 650;
+            final isTablet = screenWidth >= 650 && screenWidth < 1024;
+
+            final pagePadding = isMobile
+                ? const EdgeInsets.all(16)
+                : isTablet
+                    ? const EdgeInsets.all(20)
+                    : const EdgeInsets.all(28);
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: pagePadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. Primary Summary Cards (Sections 5.1, 5.2, 5.3)
-                  _buildSummaryCards(isDesktop),
+                  _buildSummaryCards(screenWidth),
 
-                  const SizedBox(height: 28),
+                  SizedBox(height: isMobile ? 20 : 28),
 
                   // 2. Charts Section (Section 6)
-                  _buildChartsSection(isDesktop),
+                  _buildChartsSection(screenWidth),
 
-                  const SizedBox(height: 32),
+                  SizedBox(height: isMobile ? 24 : 32),
 
                   // 3. Recently Added Users Section
-                  _buildRecentUsersSection(isDesktop),
+                  _buildRecentUsersSection(screenWidth),
                 ],
               ),
             );
@@ -85,7 +93,7 @@ class HomeView extends GetView<HomeController> {
   }
 
   /// Summary Cards: Total Users, Demo Users, Production Users, Stopped Users
-  Widget _buildSummaryCards(bool isDesktop) {
+  Widget _buildSummaryCards(double screenWidth) {
     final cards = [
       StatCard(
         title: 'Total Users',
@@ -117,12 +125,12 @@ class HomeView extends GetView<HomeController> {
       ),
     ];
 
-    if (isDesktop) {
+    if (screenWidth >= 1024) {
       return Row(
         children: cards
             .map((c) => Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: c,
                   ),
                 ))
@@ -130,20 +138,36 @@ class HomeView extends GetView<HomeController> {
       );
     }
 
+    // Responsive 2x2 Grid for Mobile & Tablet
+    final spacing = screenWidth < 600 ? 10.0 : 14.0;
     return Column(
-      children: cards
-          .map((c) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: c,
-              ))
-          .toList(),
+      children: [
+        Row(
+          children: [
+            Expanded(child: cards[0]),
+            SizedBox(width: spacing),
+            Expanded(child: cards[1]),
+          ],
+        ),
+        SizedBox(height: spacing),
+        Row(
+          children: [
+            Expanded(child: cards[2]),
+            SizedBox(width: spacing),
+            Expanded(child: cards[3]),
+          ],
+        ),
+      ],
     );
   }
 
   /// Dashboard Charts: Status Donut Chart & Breakdown
-  Widget _buildChartsSection(bool isDesktop) {
+  Widget _buildChartsSection(double screenWidth) {
+    final isDesktop = screenWidth >= 900;
+    final isMobile = screenWidth < 600;
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
@@ -155,30 +179,32 @@ class HomeView extends GetView<HomeController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'User Status Distribution',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'User Status Distribution',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: isMobile ? 16 : 18,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Real-time breakdown of Demo vs Production status',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 13,
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Real-time breakdown of Demo vs Production status',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 18 : 24),
           if (controller.totalUsers == 0)
             Container(
               height: 200,
@@ -369,7 +395,7 @@ class HomeView extends GetView<HomeController> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
@@ -378,38 +404,40 @@ class HomeView extends GetView<HomeController> {
       child: Row(
         children: [
           Container(
-            width: 12,
-            height: 12,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
               style: const TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w500,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 6),
           Text(
             '$count',
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 13,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Text(
             '(${percentage.toStringAsFixed(1)}%)',
             style: const TextStyle(
               color: AppColors.textMuted,
-              fontSize: 12,
+              fontSize: 11.5,
             ),
           ),
         ],
@@ -418,8 +446,10 @@ class HomeView extends GetView<HomeController> {
   }
 
   /// Recent Users Section
-  Widget _buildRecentUsersSection(bool isDesktop) {
+  Widget _buildRecentUsersSection(double screenWidth) {
     final recent = controller.recentUsers;
+    final isMobile = screenWidth < 600;
+    final isDesktop = screenWidth >= 900;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,11 +457,11 @@ class HomeView extends GetView<HomeController> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Recently Added Users',
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 18,
+                fontSize: isMobile ? 16 : 18,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -458,13 +488,32 @@ class HomeView extends GetView<HomeController> {
               style: TextStyle(color: AppColors.textMuted),
             ),
           )
+        else if (!isDesktop)
+          // Mobile & Tablet: Natural height column prevents any button clipping
+          Column(
+            children: recent.map((user) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: UserCard(
+                  key: ValueKey(user.id),
+                  user: user,
+                  isLoading: controller.isActionLoading.value,
+                  onStartProduction: () => controller.startProduction(user),
+                  onResetDeviceId: () => controller.resetDeviceId(user),
+                  onToggleStop: () => controller.toggleStopUser(user),
+                  onDelete: () => controller.deleteUser(user),
+                ),
+              );
+            }).toList(),
+          )
         else
+          // Desktop: 2-column grid with generous extent so cards never clip
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isDesktop ? 2 : 1,
-              mainAxisExtent: 370,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisExtent: 420,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -472,6 +521,7 @@ class HomeView extends GetView<HomeController> {
             itemBuilder: (context, index) {
               final user = recent[index];
               return UserCard(
+                key: ValueKey(user.id),
                 user: user,
                 isLoading: controller.isActionLoading.value,
                 onStartProduction: () => controller.startProduction(user),

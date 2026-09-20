@@ -15,8 +15,13 @@ class AdminSidebar extends StatelessWidget {
     final authService = Get.find<AuthService>();
     final currentRoute = Get.currentRoute;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final sidebarWidth = isDrawer
+        ? (screenWidth * 0.82).clamp(240.0, 280.0)
+        : 260.0;
+
     final content = Container(
-      width: 260,
+      width: sidebarWidth,
       color: AppColors.sidebar,
       child: Column(
         children: [

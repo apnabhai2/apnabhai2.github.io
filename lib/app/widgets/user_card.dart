@@ -65,6 +65,8 @@ class _UserCardState extends State<UserCard> {
       statusBg = AppColors.productionBg;
     }
 
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -78,7 +80,7 @@ class _UserCardState extends State<UserCard> {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -110,15 +112,18 @@ class _UserCardState extends State<UserCard> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                user.id,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
+                              Flexible(
+                                child: Text(
+                                  user.id,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: isMobile ? 16 : 17,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
+                              const SizedBox(width: 4),
                               IconButton(
                                 icon: const Icon(Icons.copy_rounded,
                                     size: 15, color: AppColors.textMuted),
@@ -327,165 +332,167 @@ class _UserCardState extends State<UserCard> {
             ],
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
           // Action Buttons
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              if (!user.isProduction || user.isExpired)
-                ElevatedButton.icon(
-                onPressed: widget.isLoading
-                    ? null
-                    : () {
-                        ConfirmationDialog.show(
-                          title: user.isDemo
-                              ? 'Start Production'
-                              : 'Extend Validity',
-                          message: user.isDemo
-                              ? 'Transition "${user.id}" to production for 30 days starting now?'
-                              : 'Extend access for "${user.id}" by 30 days starting now?',
-                          confirmText: user.isDemo
-                              ? 'Activate (30 Days)'
-                              : 'Extend (30 Days)',
-                          confirmColor: AppColors.production,
-                          onConfirm: widget.onStartProduction,
-                        );
-                      },
-                icon: Icon(
-                  user.isDemo
-                      ? Icons.rocket_launch_rounded
-                      : Icons.more_time_rounded,
-                  size: 16,
-                ),
-                label: Text(
-                  user.isDemo ? 'Start Production (30d)' : 'Extend 30d',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.production,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (user.deviceId.isNotEmpty)
-                OutlinedButton.icon(
-                  onPressed: widget.isLoading
-                      ? null
-                      : () {
-                          ConfirmationDialog.show(
-                            title: 'Reset Hardware ID',
-                            message:
-                                'Clear hardware binding for "${user.id}"? User can then open the software on another computer.',
-                            confirmText: 'Reset Hardware',
-                            confirmColor: const Color(0xFF3B82F6),
-                            onConfirm: widget.onResetDeviceId,
-                          );
-                        },
-                  icon: const Icon(Icons.phonelink_erase_rounded,
-                      size: 16, color: Color(0xFF3B82F6)),
-                  label: const Text(
-                    'Reset Device',
-                    style: TextStyle(color: Color(0xFF3B82F6)),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.5)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+          Builder(
+            builder: (context) {
+              final btnPadding = EdgeInsets.symmetric(
+                horizontal: isMobile ? 10 : 13,
+                vertical: isMobile ? 8 : 10,
+              );
+              final btnTextStyle = TextStyle(
+                fontSize: isMobile ? 12 : 13,
+                fontWeight: FontWeight.w600,
+              );
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (!user.isProduction || user.isExpired)
+                    ElevatedButton.icon(
+                      onPressed: widget.isLoading
+                          ? null
+                          : () {
+                              ConfirmationDialog.show(
+                                title: user.isDemo
+                                    ? 'Start Production'
+                                    : 'Extend Validity',
+                                message: user.isDemo
+                                    ? 'Transition "${user.id}" to production for 30 days starting now?'
+                                    : 'Extend access for "${user.id}" by 30 days starting now?',
+                                confirmText: user.isDemo
+                                    ? 'Activate (30 Days)'
+                                    : 'Extend (30 Days)',
+                                confirmColor: AppColors.production,
+                                onConfirm: widget.onStartProduction,
+                              );
+                            },
+                      icon: Icon(
+                        user.isDemo
+                            ? Icons.rocket_launch_rounded
+                            : Icons.more_time_rounded,
+                        size: isMobile ? 15 : 16,
+                      ),
+                      label: Text(
+                        user.isDemo ? 'Start Production (30d)' : 'Extend 30d',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.production,
+                        foregroundColor: Colors.white,
+                        padding: btnPadding,
+                        textStyle: btnTextStyle,
+                      ),
                     ),
-                  ),
-                ),
-              if (widget.onToggleStop != null)
-                OutlinedButton.icon(
-                  onPressed: widget.isLoading
-                      ? null
-                      : () {
-                          if (user.stop) {
+                  if (user.deviceId.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: widget.isLoading
+                          ? null
+                          : () {
+                              ConfirmationDialog.show(
+                                title: 'Reset Hardware ID',
+                                message:
+                                    'Clear hardware binding for "${user.id}"? User can then open the software on another computer.',
+                                confirmText: 'Reset Hardware',
+                                confirmColor: const Color(0xFF3B82F6),
+                                onConfirm: widget.onResetDeviceId,
+                              );
+                            },
+                      icon: Icon(Icons.phonelink_erase_rounded,
+                          size: isMobile ? 15 : 16,
+                          color: const Color(0xFF3B82F6)),
+                      label: const Text(
+                        'Reset Device',
+                        style: TextStyle(color: Color(0xFF3B82F6)),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color:
+                                const Color(0xFF3B82F6).withValues(alpha: 0.5)),
+                        padding: btnPadding,
+                        textStyle: btnTextStyle,
+                      ),
+                    ),
+                  if (widget.onToggleStop != null)
+                    OutlinedButton.icon(
+                      onPressed: widget.isLoading
+                          ? null
+                          : () {
+                              if (user.stop) {
+                                ConfirmationDialog.show(
+                                  title: 'Resume User Access',
+                                  message:
+                                      'Restore software access for "${user.id}"?',
+                                  confirmText: 'Resume Access',
+                                  confirmColor: AppColors.success,
+                                  onConfirm: widget.onToggleStop!,
+                                );
+                              } else {
+                                ConfirmationDialog.show(
+                                  title: 'Stop User Access',
+                                  message:
+                                      'Stop access for "${user.id}"? Software will block access with stop=true.',
+                                  confirmText: 'Stop User',
+                                  confirmColor: AppColors.danger,
+                                  onConfirm: widget.onToggleStop!,
+                                );
+                              }
+                            },
+                      icon: Icon(
+                        user.stop
+                            ? Icons.play_arrow_rounded
+                            : Icons.stop_circle_outlined,
+                        size: isMobile ? 15 : 16,
+                        color: user.stop ? AppColors.success : AppColors.danger,
+                      ),
+                      label: Text(
+                        user.stop ? 'Resume' : 'Stop',
+                        style: TextStyle(
+                          color:
+                              user.stop ? AppColors.success : AppColors.danger,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: (user.stop
+                                  ? AppColors.success
+                                  : AppColors.danger)
+                              .withValues(alpha: 0.5),
+                        ),
+                        padding: btnPadding,
+                        textStyle: btnTextStyle,
+                      ),
+                    ),
+                  OutlinedButton.icon(
+                    onPressed: widget.isLoading
+                        ? null
+                        : () {
                             ConfirmationDialog.show(
-                              title: 'Resume User Access',
+                              title: 'Delete User',
                               message:
-                                  'Restore software access for "${user.id}"?',
-                              confirmText: 'Resume Access',
-                              confirmColor: AppColors.success,
-                              onConfirm: widget.onToggleStop!,
-                            );
-                          } else {
-                            ConfirmationDialog.show(
-                              title: 'Stop User Access',
-                              message:
-                                  'Stop access for "${user.id}"? Software will block access with stop=true.',
-                              confirmText: 'Stop User',
+                                  'Are you sure you want to delete "${user.id}"? This will terminate their access immediately.',
+                              confirmText: 'Delete',
                               confirmColor: AppColors.danger,
-                              onConfirm: widget.onToggleStop!,
+                              onConfirm: widget.onDelete,
                             );
-                          }
-                        },
-                  icon: Icon(
-                    user.stop
-                        ? Icons.play_arrow_rounded
-                        : Icons.stop_circle_outlined,
-                    size: 16,
-                    color: user.stop ? AppColors.success : AppColors.danger,
-                  ),
-                  label: Text(
-                    user.stop ? 'Resume' : 'Stop',
-                    style: TextStyle(
-                      color: user.stop ? AppColors.success : AppColors.danger,
+                          },
+                    icon: Icon(Icons.delete_outline_rounded,
+                        size: isMobile ? 15 : 16, color: AppColors.danger),
+                    label: const Text(
+                      'Delete',
+                      style: TextStyle(color: AppColors.danger),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: AppColors.danger.withValues(alpha: 0.5)),
+                      padding: btnPadding,
+                      textStyle: btnTextStyle,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: (user.stop ? AppColors.success : AppColors.danger)
-                          .withValues(alpha: 0.5),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              OutlinedButton.icon(
-                onPressed: widget.isLoading
-                    ? null
-                    : () {
-                        ConfirmationDialog.show(
-                          title: 'Delete User',
-                          message:
-                              'Are you sure you want to delete "${user.id}"? This will terminate their access immediately.',
-                          confirmText: 'Delete',
-                          confirmColor: AppColors.danger,
-                          onConfirm: widget.onDelete,
-                        );
-                      },
-                icon: const Icon(Icons.delete_outline_rounded,
-                    size: 16, color: AppColors.danger),
-                label: const Text(
-                  'Delete',
-                  style: TextStyle(color: AppColors.danger),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                      color: AppColors.danger.withValues(alpha: 0.5)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),

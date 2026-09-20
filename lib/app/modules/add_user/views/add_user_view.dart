@@ -9,14 +9,17 @@ class AddUserView extends GetView<AddUserController> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return AdminScaffold(
       title: 'Add User',
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 520),
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(isMobile ? 20 : 32),
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(16),
@@ -51,25 +54,27 @@ class AddUserView extends GetView<AddUserController> {
                         ),
                       ),
                       const SizedBox(width: 14),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Create Managed User',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Create Managed User',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: isMobile ? 17 : 18,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Assigned automatically to your Master Code',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
+                            const Text(
+                              'Assigned automatically to your Master Code',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
