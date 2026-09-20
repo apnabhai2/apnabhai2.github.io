@@ -13,15 +13,13 @@ service cloud.firestore {
       allow read: if true;
 
       // 2. CREATE:
-      // Allow adding a new Master Admin from apnaadmin, but strictly enforce
-      // document schema so passwords cannot be leaked in plaintext and data is valid.
-      allow create: if request.resource.data.id is string
-                    && request.resource.data.username is string
+      // Allow adding a new Master Admin from apnaadmin.
+      // NOTE: Document ID (adminId) is the admin username. The document body contains
+      // username, masterCode, email, uid, etc. (does NOT contain a redundant 'id' field).
+      allow create: if request.resource.data.username is string
                     && request.resource.data.masterCode is string
-                    && request.resource.data.id.size() > 0
                     && request.resource.data.username.size() > 0
                     && request.resource.data.masterCode.size() > 0
-                    // SECURITY: Block storing plaintext password fields in Firestore
                     && !('password' in request.resource.data);
 
       // 3. UPDATE:
