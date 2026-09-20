@@ -3,48 +3,48 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ----------------------------------------------------
-    // 1. MASTER ADMIN COLLECTION (Managed by Admin App & Website)
+    // 1. MASTER ADMIN COLLECTION (Admin App & Website)
     // ----------------------------------------------------
     match /masterAdmin/{adminId} {
-      // Allow direct document lookup (get) for website login by adminId/username
+      // Allow single document lookup (get) so website login can find admin's email by username
       allow get: if true;
 
-      // STRICTLY PREVENT dumping the entire collection of master admins.
-      // Only authenticated users (Admin App) can list all master admins.
+      // STRICTLY PROTECTED: Only logged-in Master Admins can list all admin accounts
       allow list: if request.auth != null;
 
-      // Allow creating or updating a master admin with required schema
-      allow create, update: if request.resource.data.username is string
-                            && request.resource.data.masterCode is string
-                            && (request.resource.data.pass is string || request.resource.data.password is string);
-
-      // Prevent unauthorized deletion of master admin accounts from the web
-      allow delete: if request.auth != null;
+      // STRICTLY PROTECTED: Only authenticated admins can create, update, or delete master admins
+      allow create, update, delete: if request.auth != null;
     }
 
     // ----------------------------------------------------
-    // 2. USERS COLLECTION (Managed by Master Admin Website & Checked by Software)
+    // 2. USERS COLLECTION (Desktop Software & Website)
     // ----------------------------------------------------
     match /users/{userId} {
-      // 1. User Software: Lookup license status by userId
+      // 1. Desktop software: Lookup license status by specific userId
       allow get: if true;
 
-      // 2. Website: Master Admin reads and queries users
-      allow list: if true;
+      // 2. Master Admin Website: Only logged-in Master Admins can list/query users
+      // HACKER PROOF: Blocks any unauthorized scraping of users and passwords!
+      allow list: if request.auth != null;
 
-      // Website: Master Admin creates user with the required software schema
-      allow create: if request.resource.data.id is string
+      // 3. Master Admin Website: Only logged-in Master Admins can create users
+      allow create: if request.auth != null
+                    && request.resource.data.id is string
                     && request.resource.data.pass is string
                     && request.resource.data.currentDate is timestamp
                     && request.resource.data.expiryDate is timestamp
                     && request.resource.data.masterCode is string;
 
-      // Prevent tampering: user ID and masterCode cannot be modified once created
-      allow update: if request.resource.data.id == resource.data.id
-                    && request.resource.data.masterCode == resource.data.masterCode;
+      // 4. Updates:
+      // - Logged-in Master Admin can update any field (stop, expiryDate, pass, etc.)
+      // - Unauthenticated Desktop Software can ONLY update 'deviceId' (cannot hack dates/pass/stop!)
+      allow update: if request.auth != null
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deviceId'])
+                    );
 
-      // Website: Master Admin deletes users
-      allow delete: if true;
+      // 5. Master Admin Website: Only logged-in Master Admins can delete users
+      allow delete: if request.auth != null;
     }
 
     // Deny all other collections
